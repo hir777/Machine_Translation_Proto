@@ -7,7 +7,7 @@ VALID_JA=corpus/valid.ja
 TEST_EN=corpus/test.en
 
 cat $TRAIN_EN $TRAIN_JA > train.enja
-python src/learn.py --input train.enja --prefix bpe --vocab-size 4000 --character-coverage 0.9995 --threads 1
+python src/sp_learn.py --input train.enja --prefix bpe --vocab-size 4000 --character-coverage 0.9995 --threads 1
 
 encode () {
     python src/encode.py --model bpe.model
