@@ -23,11 +23,11 @@ fairseq-train \
     --encoder-embed-dim 512 \
     --encoder-ffn-embed-dim 2048 \
     --encoder-attention-heads 8 \
-    --encoder-layers 6 \
+    --encoder-layers 8 \
     --decoder-embed-dim 512 \
     --decoder-ffn-embed-dim 2048 \
     --decoder-attention-heads 8 \
-    --decoder-layers 6 \
+    --decoder-layers 8 \
     --share-all-embeddings \
     --dropout 0.3 \
     --attention-dropout 0.0 \
