@@ -7,9 +7,9 @@ bash pre-process.sh
 
 ## モデルにデータセットを学習させる
 
-```
+```bash
 fairseq-train \
-    $DATABIN \
+    data-bin \
     --fp16 \
     --save-interval 5 \
     --log-interval 1 \
@@ -47,7 +47,8 @@ fairseq-train \
 ```
 
 ## 学習済みモデルを利用する
-```
+
+```bash
 fairseq-interactive data-bin \
     --buffer-size 1024 \
     --batch-size 128 \
