@@ -1,6 +1,8 @@
 from argparse import ArgumentParser
 import sentencepiece as spm
 
+# SentencePieceを学習する
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--input')
