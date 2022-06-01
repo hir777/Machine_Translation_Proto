@@ -1,6 +1,6 @@
 import os
 
-dir_data = "~/content/"
+dir_data = "~/Machine_Translation_Proto/content/"
 if not os.path.exists(dir_data):
   os.mkdir(dir_data)
 os.chdir(dir_data)
