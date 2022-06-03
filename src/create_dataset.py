@@ -34,11 +34,11 @@ if __name__ == '__main__':
     row_data = "/content/split/"
     dest = "/Machine_Translation_Proto/corpus/"
 
-    bitexts = read_file(os.path.join(row_data, "train"), 100)
+    bitexts = read_file(os.path.join(row_data, "train"), 700000)
     write_files(bitexts, os.path.join(dest, "train.en"), os.path.join(dest, "train.ja"))
 
-    bitexts = read_file(os.path.join(row_data, "dev"), 100)
+    bitexts = read_file(os.path.join(row_data, "dev"), 2000)
     write_files(bitexts, os.path.join(dest, "valid.en"), os.path.join(dest, "valid.ja"))
 
-    bitexts = read_file(os.path.join(row_data, "test"), 100)
+    bitexts = read_file(os.path.join(row_data, "test"), 2000)
     write_files(bitexts, os.path.join(dest, "test.en"), os.path.join(dest, "test.ja"))
