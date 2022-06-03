@@ -31,8 +31,8 @@ def read_file(data_path, size):
     return bitexts
 
 if __name__ == '__main__':
-    row_data = "/home/tasaki/content/split/"
-    dest = "/home/tasaki/Machine_Translation_Proto/content/"
+    row_data = "/content/split/"
+    dest = "/Machine_Translation_Proto/content/"
 
     bitexts = read_file(os.path.join(row_data, "train"), 100)
     write_files(bitexts, os.path.join(dest, "train.en"), os.path.join(dest, "train.ja"))
