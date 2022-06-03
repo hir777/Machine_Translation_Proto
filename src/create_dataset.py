@@ -7,13 +7,13 @@ def find_ja(str):
     ja_sents = re.findall(pattern, str)
     ja_sents = [re.sub(r"\s", "", sent) for sent in ja_sents]
     
-    return "".join(ja_sents)
+    return "".join(ja_sents) + "\n"
 
 def find_en(str):
     pattern = r"[a-zA-Z,.!?[\]()\-\s]+"
     en_sents = re.findall(pattern, str)
 
-    return "".join(en_sents) + "\n"
+    return "".join(en_sents)
 
 def write_files(bitexts, file_en, file_ja):
     with open(file_en, 'a') as f_en, open(file_ja, 'a') as f_ja:
