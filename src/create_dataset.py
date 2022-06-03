@@ -38,7 +38,7 @@ if __name__ == '__main__':
     write_files(bitexts, os.path.join(dest, "train.en"), os.path.join(dest, "train.ja"))
 
     bitexts = read_file(os.path.join(row_data, "dev"), 100)
-    write_files(bitexts, os.path.join(dest, "dev.en"), os.path.join(dest, "dev.ja"))
+    write_files(bitexts, os.path.join(dest, "valid.en"), os.path.join(dest, "valid.ja"))
 
     bitexts = read_file(os.path.join(row_data, "test"), 100)
     write_files(bitexts, os.path.join(dest, "test.en"), os.path.join(dest, "test.ja"))
