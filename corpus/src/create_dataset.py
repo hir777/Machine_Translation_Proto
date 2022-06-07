@@ -3,10 +3,16 @@ import tokenize as tk
 import filter as fl
 import split_dataset as spl
 import tqdm as t
+import argparse
 
 
 if __name__ == "__main__":
-    repo_path = "/Machine_Translation_Proto/"
+    parser = argparse.ArgumentParser(description='usage')
+    parser.add_argument("--repo_path", type=str,
+                        help="absolute path of Machine_Translation_Proto repository")
+    args = parser.parse_args()
+    repo_path = args.repo_path
+    
     # データセットをダウンロードしてリスト化する
     dl.dl_tatoeba(repo_path)
     en_ls, ja_ls = dl.json2list(repo_path)
