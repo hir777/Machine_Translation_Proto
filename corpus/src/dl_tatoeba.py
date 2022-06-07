@@ -1,14 +1,13 @@
-import re
-from datasets import load_dataset
+import datasets 
 import os
-from tqdm import tqdm
+import tqdm as t
 import json
 
 
 def dl_tatoeba(repo_path):
     ds_path = os.path.join(repo_path, "corpus/data")
     print(ds_path)
-    ds_dict = load_dataset("tatoeba", lang1="en", lang2="ja")
+    ds_dict = datasets.load_dataset("tatoeba", lang1="en", lang2="ja")
     ds = ds_dict["train"]
     ds.info.write_to_directory(ds_path)
     ds.to_json(os.path.join(ds_path, "en-ja.json"))
@@ -18,7 +17,7 @@ def reform_json(file1, file2):
     with open(file1, "r", encoding="utf-8") as fr, open(file2, "w", encoding="utf-8") as fw:
         num_sents = int(os.popen("wc -l %s" % file1).read().strip().split()[0])
         fw.write('{\n  "bitexts-en-ja": [\n')
-        for i in tqdm(range(0, num_sents)):
+        for i in t.tqdm(range(0, num_sents)):
             line = fr.readline()
             if i != num_sents-1:
                 fw.write("  " + line[:-1] + ",\n")
@@ -38,7 +37,7 @@ def json2list(repo_path):
         data = json.load(fr)
         json.dump(data, fw, indent=2, ensure_ascii=False)
 
-        for bitext in tqdm(data["bitexts-en-ja"]):
+        for bitext in t.tqdm(data["bitexts-en-ja"]):
             bitext = bitext["translation"]
             en_ls.append(bitext["en"])
             ja_ls.append(bitext["ja"])
@@ -48,8 +47,8 @@ def json2list(repo_path):
 
 
 if __name__ == "__main__":
-    dl_tatoeba("/home/hiroshi/Machine_Translation_Proto/")
-    en_ls, ja_ls = json2list("/home/hiroshi/Machine_Translation_Proto/")
+    dl_tatoeba("/home/hiroshi/tmp/Machine_Translation_Proto/")
+    en_ls, ja_ls = json2list("/home/hiroshi/tmp/Machine_Translation_Proto/")
 
     for en, ja in zip(en_ls[:10], ja_ls[:10]):
         print(en + '\t' + ja)
