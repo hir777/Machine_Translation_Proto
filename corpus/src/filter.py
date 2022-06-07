@@ -15,6 +15,7 @@ def trunc(x, max):
 
 def len_filter(en_sents, ja_sents, min, max, truncate=False):
     en_ls, ja_ls = [], []
+    print("\nFiltering by length...")
     for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         en_len, ja_len = lens(en, ja)
         if min <= en_len <= max and min <= ja_len <= max:
@@ -32,6 +33,7 @@ def overlap_filter(en_sents, ja_sents):
     en_dict = {sent: 0 for sent in en_sents}
     ja_dict = {sent: 0 for sent in ja_sents}
 
+    print("\nFiltering by overlap...")
     for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         if en_dict[en] == 0 and en_dict[ja] == 0:
             en_ls.append(en)
@@ -54,6 +56,8 @@ def ratio(s1, s2):
 
 def ratio_filter(en_sents, ja_sents):
     ratios, en_ls, ja_ls = [], [], []
+
+    print("Filtering by ratio...")
     for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         len_en, len_ja = lens(en, ja)
         if len_en == 0 or len_ja == 0:
