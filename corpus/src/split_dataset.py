@@ -26,7 +26,7 @@ def write_ds(f_name, f_path, bitexts):
 
 
 def split_dataset(en_sents, ja_sents, split_ratio: Dict[str, float], repo_path):
-    data_path = os.path.join(repo_path, "/corus/data")
+    data_path = os.path.join(repo_path, "corpus/data")
     en_ja = [en + '\t' + ja for en,
              ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents))]
     rd.shuffle(en_ja)
