@@ -35,7 +35,7 @@ def overlap_filter(en_sents, ja_sents):
 
     print("\nFiltering by overlap...")
     for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
-        if en_dict[en] == 0 and en_dict[ja] == 0:
+        if en_dict[en] == 0 and ja_dict[ja] == 0:
             en_ls.append(en)
             ja_ls.append(ja)
             en_dict[en] += 1
@@ -81,3 +81,8 @@ def ratio_filter(en_sents, ja_sents):
         ja_ls.append(ja)
 
     return en_ls, ja_ls
+
+if __name__=="__main__":
+    en_ls = ["I have a pen .", "I have a pen ."]
+    ja_ls = ["私　は　ペン　を　持って　いる　。", "私　は　鉛筆　を　持って　いる　。"]
+    en, ja = overlap_filter(en_ls, ja_ls)
