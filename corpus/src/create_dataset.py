@@ -1,5 +1,5 @@
 import dl_tatoeba as dl
-import tokenize as tk
+import tokenize_enja as tk
 import filter as fl
 import split_dataset as spl
 import tqdm as t
