@@ -9,8 +9,10 @@ def check_ratio(split_ratio: Dict[str, float]):
     ratio = split_ratio.items()
     vals = [r[1] for r in ratio]
     sum = np.sum(vals)
+    eps = 0.01
 
-    return False if ( len(ratio) != 3 or not all([val > 0.0 for val in vals]) or sum != 1.0 ) else True
+    return False if len(ratio) != 3 or not all([val > 0.0 for val in vals]) or not (1.0 - eps < sum < 1.0 + eps) else True
+
 
 def split_dataset(en_sents, ja_sents, split_ratio: Dict[str, float]):
     train_en, train_ja, dev_en, dev_ja, test_en, test_ja = [], [], [], [], [], []
