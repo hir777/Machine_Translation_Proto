@@ -5,11 +5,12 @@ from tqdm import tqdm
 import json
 
 def dl_tatoeba(repo_path):
-    ds_path = os.path.join(repo_path, "/corpus/data")
+    ds_path = os.path.join(repo_path, "corpus/data")
+    print(ds_path)
     ds_dict = load_dataset("tatoeba", lang1="en", lang2="ja")
-    ds = ds_dict["train"]
+    ds = ds_dict["train"]        
     ds.info.write_to_directory(ds_path)
-    ds.to_json(os.path.join(ds_path, "/en-ja.json"))
+    ds.to_json(os.path.join(ds_path, "en-ja.json"))
 
 def reform_json(file1, file2):
     with open(file1, "r", encoding="utf-8") as fr, open(file2, "w", encoding="utf-8") as fw:
@@ -24,8 +25,8 @@ def reform_json(file1, file2):
         fw.write(' ]\n}')
 
 def json2list(repo_path):
-    ds_path = os.path.join(repo_path, "/corpus/data/en-ja.json")
-    tmp_path = os.path.join(repo_path, "/corpus/data/dataset.json")
+    ds_path = os.path.join(repo_path, "corpus/data/en-ja.json")
+    tmp_path = os.path.join(repo_path, "corpus/data/dataset.json")
 
     # jsonファイルをreformatした後、保存し直す
     reform_json(ds_path, tmp_path)
@@ -34,5 +35,5 @@ def json2list(repo_path):
         json.dump(data, fw, indent=2, ensure_ascii=False)
 
 if __name__=="__main__":
-    dl_tatoeba("/home/hiroshi/Machine_Translation_Proto")
-    json2list("/home/hiroshi/Machine_Translation_Proto")
+    dl_tatoeba("/home/hiroshi/Machine_Translation_Proto/")
+    json2list("/home/hiroshi/Machine_Translation_Proto/")
