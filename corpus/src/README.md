@@ -15,4 +15,6 @@ pip install mecab-python3
 
 pip install unidic
 
+python -m unidic download
+
 https://atmarkit.itmedia.co.jp/ait/articles/2102/05/news027.html
