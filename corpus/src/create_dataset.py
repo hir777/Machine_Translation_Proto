@@ -12,13 +12,15 @@ if __name__ == "__main__":
                         help="absolute path of Machine_Translation_Proto repository")
     args = parser.parse_args()
     repo_path = args.repo_path
-    
+
     # データセットをダウンロードしてリスト化する
     dl.dl_tatoeba(repo_path)
     en_ls, ja_ls = dl.json2list(repo_path)
 
     # 英文と日本文をそれぞれトークン化する
+    print("\nTokenizing English sentences...")
     en_ls = [tk.tokenize_en(en) for en in t.tqdm(en_ls)]
+    print("\nTokenizing Japanese sentences...")
     ja_ls = [tk.tokenize_ja(ja) for ja in t.tqdm(ja_ls)]
 
     # フィルタリング
