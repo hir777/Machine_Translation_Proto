@@ -2,6 +2,8 @@ import re
 import sacremoses as sm
 import unicodedata
 import spacy
+import MeCab
+import unidic
 
 
 def tokenize_en(en):
@@ -15,9 +17,12 @@ def tokenize_en(en):
 
 
 def tokenize_ja(ja):
-    gt = spacy.load('ja_ginza')
+    wakati = MeCab.Tagger('-Owakati')
     ja = unicodedata.normalize('NFKC', ja)
-    ja = gt.tokenize(ja)
-    ja = [token.text for token in ja]
-    ja = ' '.join(ja)
+    ja = wakati.parse(ja)
     return ja
+
+if __name__=="__main__":
+    ja = "くるまでまつ"
+    res = tokenize_ja(ja)
+    print(res)
