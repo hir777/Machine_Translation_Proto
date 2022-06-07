@@ -17,6 +17,7 @@ def reform_json(file1, file2):
     with open(file1, "r", encoding="utf-8") as fr, open(file2, "w", encoding="utf-8") as fw:
         num_sents = int(os.popen("wc -l %s" % file1).read().strip().split()[0])
         fw.write('{\n  "bitexts-en-ja": [\n')
+        print("\nReformating a json file downloaded from tatoeba...")
         for i in t.tqdm(range(0, num_sents)):
             line = fr.readline()
             if i != num_sents-1:
@@ -37,6 +38,7 @@ def json2list(repo_path):
         data = json.load(fr)
         json.dump(data, fw, indent=2, ensure_ascii=False)
 
+        print("\nConverting a json file into list...")
         for bitext in t.tqdm(data["bitexts-en-ja"]):
             bitext = bitext["translation"]
             en_ls.append(bitext["en"])
