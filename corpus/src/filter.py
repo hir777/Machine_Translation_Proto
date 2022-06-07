@@ -8,7 +8,7 @@ def lens(s1, s2):
     return len_s1, len_s2
 
 
-def truncate(x, max):
+def trunc(x, max):
     x_len = len(x.strip().split())
     return x if x_len <= max else x[:max]
 
@@ -21,8 +21,8 @@ def len_filter(en_sents, ja_sents, min, max, truncate=False):
             en_ls.append(en)
             ja_ls.append(ja)
         elif not (min > en_len or min > ja_len) and truncate:
-            en_ls.append(truncate(en, max))
-            ja_ls.append(truncate(ja, max))
+            en_ls.append(trunc(en, max))
+            ja_ls.append(trunc(ja, max))
 
     return en_ls, ja_ls
 
