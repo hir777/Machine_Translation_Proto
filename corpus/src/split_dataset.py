@@ -1,12 +1,11 @@
 import random as rd
-from regex import F
-from tqdm import tqdm
-from typing import Dict
+import tqdm as t
+import typing
 import numpy as np
 import os
 
 
-def check_ratio(split_ratio: Dict[str, float]):
+def check_ratio(split_ratio: typing.Dict[str, float]):
     ratio = split_ratio.items()
     vals = [r[1] for r in ratio]
     sum = np.sum(vals)
@@ -19,16 +18,16 @@ def write_ds(f_name, f_path, bitexts):
     en_path = os.path.join(f_path, "{}.en".format(f_name))
     ja_path = os.path.join(f_path, "{}.ja".format(f_name))
     with open(en_path, 'w') as f_en, open(ja_path, 'w') as f_ja:
-        for bitext in tqdm(bitexts):
+        for bitext in t.tqdm(bitexts):
             en, ja = bitext.split('\t')
             f_en.write(en + '\n')
             f_ja.write(ja + '\n')
 
 
-def split_dataset(en_sents, ja_sents, split_ratio: Dict[str, float], repo_path):
+def split_dataset(en_sents, ja_sents, split_ratio: typing.Dict[str, float], repo_path):
     data_path = os.path.join(repo_path, "corpus/data/")
     en_ja = [en + '\t' + ja for en,
-             ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents))]
+             ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents))]
     rd.shuffle(en_ja)
 
     size = len(en_ja)
