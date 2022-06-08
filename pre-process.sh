@@ -1,11 +1,23 @@
+#!/bin/bash
 set -ex
 
+# レポジトリの絶対パスをコマンドライン引数REPO_APTHとして渡す
+for ARGUMENT in "$@"
+do
+    KEY=$(echo $ARGUMENT | cut -f1 -d=)
+
+    KEY_LENGTH=${#KEY}
+    VALUE="${ARGUMENT:$KEY_LENGTH+1}"
+
+    export "$KEY"="$VALUE"
+done
+
 # 学習用・検証用・テスト用データのPATHを指定
-TRAIN_EN=/Machine_Translation_Proto/corpus/train.en
-TRAIN_JA=/Machine_Translation_Proto/corpus/train.ja
-VALID_EN=/Machine_Translation_Proto/corpus/valid.en
-VALID_JA=/Machine_Translation_Proto/corpus/valid.ja
-TEST_EN=/Machine_Translation_Proto/corpus/test.en
+TRAIN_EN="$REPO_PATH/corpus/train.en"
+TRAIN_JA="$REPO_PATH/corpus/train.ja"
+VALID_EN="$REPO_PATH/corpus/valid.en"
+VALID_JA="$REPO_PATH/corpus/valid.ja"
+TEST_EN="$REPO_PATH/corpus/test.en"
 
 # 学習用データセットを用いてSentencePieceを学習させる
 cat $TRAIN_EN $TRAIN_JA > train.enja
