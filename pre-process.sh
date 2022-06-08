@@ -18,14 +18,16 @@ TRAIN_JA="$REPO_PATH/corpus/data/train.ja"
 VALID_EN="$REPO_PATH/corpus/data/valid.en"
 VALID_JA="$REPO_PATH/corpus/data/valid.ja"
 TEST_EN="$REPO_PATH/corpus/data/test.en"
+TRAIN_SP="$REPO_PATH/src/train_sp.py"
+ENCODE="$REPO_APTH/src/encode.py"
 
 # 学習用データセットを用いてSentencePieceを学習させる
 cat $TRAIN_EN $TRAIN_JA > train.enja
-python src/sp_learn.py --input train.enja --prefix bpe --vocab-size 4000 --character-coverage 0.9995 --threads 1
+python $TRAIN_SP --input train.enja --prefix bpe --vocab_size 4000 --character_coverage 0.9995
 
 # 学習済みのSentencePieceを用いて各データセットをエンコードする
 encode () {
-    python src/encode.py --model bpe.model
+    python $ENCODE --model bpe.model
 }
 
 encode < $TRAIN_EN > train.en
