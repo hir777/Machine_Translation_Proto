@@ -13,11 +13,11 @@ do
 done
 
 # 学習用・検証用・テスト用データのPATHを指定
-TRAIN_EN="$REPO_PATH/corpus/train.en"
-TRAIN_JA="$REPO_PATH/corpus/train.ja"
-VALID_EN="$REPO_PATH/corpus/valid.en"
-VALID_JA="$REPO_PATH/corpus/valid.ja"
-TEST_EN="$REPO_PATH/corpus/test.en"
+TRAIN_EN="$REPO_PATH/corpus/data/train.en"
+TRAIN_JA="$REPO_PATH/corpus/data/train.ja"
+VALID_EN="$REPO_PATH/corpus/data/valid.en"
+VALID_JA="$REPO_PATH/corpus/data/valid.ja"
+TEST_EN="$REPO_PATH/corpus/data/test.en"
 
 # 学習用データセットを用いてSentencePieceを学習させる
 cat $TRAIN_EN $TRAIN_JA > train.enja
