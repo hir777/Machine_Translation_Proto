@@ -5,7 +5,6 @@ from argparse import ArgumentParser
 def sp_encode(sp, f, alpha=None):
     for x in f:
         x = x.strip()
-        x = ' '.join(x.split())
         if alpha is None:
             x = sp.encode(x, out_type = int)
         else:
