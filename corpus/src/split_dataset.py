@@ -4,6 +4,10 @@ import typing
 import numpy as np
 import os
 
+def replace_all(text, dic):
+    for i, j in dic.items():
+        text = text.replace(i, j)
+    return text
 
 def check_ratio(split_ratio: typing.Dict[str, float]):
     ratio = split_ratio.items()
@@ -22,12 +26,13 @@ def write_ds(f_name, f_path, bitexts):
         for bitext in t.tqdm(bitexts):
             en, ja = bitext.split('\t')
             f_en.write(en + '\n')
-            f_ja.write(ja)
+            f_ja.write(ja + '\n')
 
 
 def split_dataset(en_sents, ja_sents, split_ratio: typing.Dict[str, float], repo_path):
     data_path = os.path.join(repo_path, "corpus/data/")
-    en_ja = [en + '\t' + ja for en, ja in zip(en_sents, ja_sents)]
+    pattern = {'\t': '', '\n': ''}
+    en_ja = [replace_all(en, pattern) + '\t' + replace_all(ja, pattern) for en, ja in zip(en_sents, ja_sents)]
     rd.shuffle(en_ja)
 
     size = len(en_ja)
