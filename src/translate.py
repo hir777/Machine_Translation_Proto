@@ -9,15 +9,15 @@ def preprocess_en(en, path_bpe_model, alpha=None):
     sp = spm.SentencePieceProcessor()
     sp.Load(path_bpe_model)
 
-    x = unicodedata.normalize('NFKC', x)
-    x = x.strip()
-    x = ' '.join(x.split())
+    en = unicodedata.normalize('NFKC', en)
+    en = en.strip()
+    en = ' '.join(en.split())
     if alpha is None:
-        x = sp.encode(x, out_type=int)
+        en = sp.encode(en, out_type=int)
     else:
-        x = sp.encode(x, out_type=int, enable_sampling=True, alpha=alpha)
-    x = ' '.join([sp.IdToPiece(i) for i in x])
-    return x
+        en = sp.encode(en, out_type=int, enable_sampling=True, alpha=alpha)
+    en = ' '.join([sp.IdToPiece(i) for i in en])
+    return en
 
 
 def en2ja(en):
@@ -37,7 +37,7 @@ def en2ja(en):
         data_name_or_path=args.data_name_or_path)
 
     en = preprocess_en(en, args.path_bpe_model)
-    ja = model.translate(x, beam=5, lenpen=0.6)
+    ja = model.translate(en, beam=1, lenpen=0.6)
     ja = ''.join(ja.split()).replace('▁', '').strip()
 
     return ja
