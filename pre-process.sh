@@ -19,7 +19,7 @@ VALID_EN="$REPO_PATH/corpus/data/valid.en"
 VALID_JA="$REPO_PATH/corpus/data/valid.ja"
 TEST_EN="$REPO_PATH/corpus/data/test.en"
 TRAIN_SP="$REPO_PATH/src/train_sp.py"
-ENCODE="$REPO_APTH/src/encode.py"
+ENCODE="$REPO_PATH/src/encode.py"
 
 # 学習用データセットを用いてSentencePieceを学習させる
 cat $TRAIN_EN $TRAIN_JA > train.enja
