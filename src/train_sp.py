@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     spm.SentencePieceTrainer.Train(
         input=args.input,
-        model_prefix=args.model_prefix,
+        model_prefix=args.prefix,
         vocab_size=args.vocab_size,
         character_coverage=args.character_coverage,
         model_type=args.model_type)
