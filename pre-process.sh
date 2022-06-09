@@ -23,7 +23,7 @@ ENCODE="$REPO_PATH/src/encode.py"
 
 # 学習用データセットを用いてSentencePieceを学習させる
 cat $TRAIN_EN $TRAIN_JA > train.enja
-python $TRAIN_SP --input train.enja --prefix bpe --vocab_size 4000 --character_coverage 0.9995
+python $TRAIN_SP --input train.enja --prefix bpe --vocab_size 8000 --character_coverage 0.9995
 
 # 学習済みのSentencePieceを用いて各データセットをエンコードする
 encode () {
