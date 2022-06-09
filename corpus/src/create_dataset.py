@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # フィルタリング
     if args.len_filter:
-        en_ls, ja_ls = fl.len_filter(en_ls, ja_ls, 4, 16, truncate=True)
+        en_ls, ja_ls = fl.len_filter(en_ls, ja_ls, 3, 256, truncate=True)
     if args.overlap_filter:
         en_ls, ja_ls = fl.overlap_filter(en_ls, ja_ls)
     if args.ratio_filter:
