@@ -1,3 +1,6 @@
+#!/bin/bash
+set -ex
+
 fairseq-train \
     /home/tasaki/Machine_Translation_Proto/data-bin \
     --fp16 \
