@@ -11,3 +11,5 @@ fairseq-interactive \
     | python /home/tasaki/Machine_Translation_Proto/src/decode.py \
     | tee output.txt \
     | sacrebleu /home/tasaki/Machine_Translation_Proto/corpus/data/test.ja
+
+head /home/tasaki/Machine_Translation_Proto/output.txt /home/tasaki/Machine_Translation_Proto/corpus/data/test.ja
