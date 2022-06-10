@@ -37,4 +37,4 @@ fairseq-train \
     --weight-decay 0.0001 \
     --criterion label_smoothed_cross_entropy \
     --label-smoothing 0.3 \
-    | tee train.log
+    | tee /home/tasaki/Machine_Translation_Proto/train.log
