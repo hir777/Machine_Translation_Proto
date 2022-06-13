@@ -25,7 +25,7 @@ class Translation:
                 "Error: Target language %s is not supported." % tgt)
 
     def load(self, checkpoint_dir, checkpoint_file, data_name_or_path, path_bpe_model):
-        self.model = TransformerModel.from_pretraind(
+        self.model = TransformerModel.from_pretrained(
             checkpoint_dir,
             checkpoint_file=checkpoint_file,
             data_name_or_path=data_name_or_path
