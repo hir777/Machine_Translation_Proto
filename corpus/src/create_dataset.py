@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("--freq_thld", type=int, default=3,
                         help="threshold for filtering words by frequency")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=[])
     repo_path = args.repo_path
 
     # データセットをダウンロードしてリスト化する
