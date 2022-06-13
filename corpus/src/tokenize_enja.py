@@ -1,7 +1,6 @@
 import re
 import sacremoses as sm
 import unicodedata
-import spacy
 import MeCab
 import unidic
 
