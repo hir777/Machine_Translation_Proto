@@ -1,3 +1,4 @@
+from collections import defaultdict
 import tqdm as t
 import numpy as np
 
@@ -82,7 +83,59 @@ def ratio_filter(en_sents, ja_sents):
 
     return en_ls, ja_ls
 
-if __name__=="__main__":
-    en_ls = ["I have a pen .", "I have a pen ."]
-    ja_ls = ["私　は　ペン　を　持って　いる　。", "私　は　鉛筆　を　持って　いる　。"]
-    en, ja = overlap_filter(en_ls, ja_ls)
+
+def get_freq_dict(en_sents, ja_sents):
+    en_dict, ja_dict = {}, {}
+    print("Creating frequency lists...")
+    for en_sent, ja_sent in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
+        en_sent = en_sent.strip().split()
+        ja_sent = ja_sent.strip().split()
+        for en in en_sent:
+            if en in en_dict:
+                en_dict[en] += 1
+            else:
+                en_dict[en] = 1
+
+        for ja in ja_sent:
+            if ja in ja_dict:
+                ja_dict[ja] += 1
+            else:
+                ja_dict[ja] = 1
+
+    return en_dict, ja_dict
+
+
+def sort_freq_dict(en_dict, ja_dict):
+    en_freq, ja_freq = list(en_dict.items()), list(ja_dict.items())
+    en_freq.sort(key=lambda x: -x[1])
+    ja_freq.sort(key=lambda x: -x[1])
+    en_freq = {freq[0]: freq[1] for freq in en_freq}
+    ja_freq = {freq[0]: freq[1] for freq in ja_freq}
+    return en_freq, ja_freq
+
+
+def replace_by_unk(sent, freq_dict, freq_thld):
+    w_ls = [w if freq_dict[w] >=
+            freq_thld else "<unk>" for w in sent.strip().split()]
+    return ' '.join(w_ls)
+
+
+def freq_filter(en_sents, ja_sents, freq_thld):
+    en_ls, ja_ls = [], []
+    en_freq, ja_freq = get_freq_dict(en_sents, ja_sents)
+    en_freq, ja_freq = sort_freq_dict(en_freq, ja_freq)
+    print("Filtering by frequency...")
+    en_ls = [replace_by_unk(en_sent, en_freq, freq_thld)
+             for en_sent in t.tqdm(en_sents)]
+    ja_ls = [replace_by_unk(ja_sent, ja_freq, freq_thld)
+             for ja_sent in t.tqdm(ja_sents)]
+    return en_ls, ja_ls
+
+
+if __name__ == "__main__":
+    en_ls = ["I have a pen .", "I have a pen .", "I am a dog lover"]
+    ja_ls = ["私 は ペン を 持って いる 。", "私 は 鉛筆 を 持って いる 。", "私 は 愛犬家 です 。"]
+    en_ls, ja_ls = overlap_filter(en_ls, ja_ls)
+    en_ls, ja_ls = freq_filter(en_ls, ja_ls, 3)
+    print(en_ls)
+    print(ja_ls)
