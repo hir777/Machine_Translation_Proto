@@ -50,5 +50,5 @@ class Translation:
         src_sent = self.preproc_en(
             src_sent) if self.src == "en" else self.preproc_ja(src_sent)
         tgt_sent = self.model.translate(src_sent, beam, lenpen)
-        tgt_sent = ' '.join(tgt_sent.split()).replace('_', '').strip()
+        tgt_sent = ''.join(tgt_sent.split()).replace('_', '').strip()
         return tgt_sent
