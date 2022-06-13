@@ -17,6 +17,10 @@ if __name__ == "__main__":
                         help="turn on/off the length filter")
     parser.add_argument("--ratio_filter", action="store_true",
                         help="turn on/off the ratio filter")
+    parser.add_argument("--freq_filter", action="store_true",
+                        help="turn on/off the freq filter")
+    parser.add_argument("--freq_thld", type=int, default=3,
+                        help="threshold for filtering words by frequency")
 
     args = parser.parse_args()
     repo_path = args.repo_path
@@ -38,6 +42,8 @@ if __name__ == "__main__":
         en_ls, ja_ls = fl.overlap_filter(en_ls, ja_ls)
     if args.ratio_filter:
         en_ls, ja_ls = fl.ratio_filter(en_ls, ja_ls)
+    if args.freq_filter:
+        en_ls, ja_ls = fl.freq_filter(en_ls, ja_ls, args.freq_thld)
 
     split_ratio = {"train": 0.8, "valid": 0.1, "test": 0.1}
     spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path)
