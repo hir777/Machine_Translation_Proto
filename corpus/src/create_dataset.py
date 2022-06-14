@@ -5,6 +5,7 @@ import filter as fl
 import split_dataset as spl
 import tqdm as t
 import argparse
+import dl_WikiMatrix as wiki
 
 
 if __name__ == "__main__":
@@ -19,16 +20,21 @@ if __name__ == "__main__":
                         help="turn on/off the ratio filter")
     parser.add_argument("--freq_filter", action="store_true",
                         help="turn on/off the freq filter")
-    parser.add_argument("--freq_thld", type=int, default=3,
+    parser.add_argument("--freq_thld", type=int, default=4,
                         help="threshold for filtering words by frequency")
 
     args = parser.parse_args()
     repo_path = args.repo_path
 
-    # データセットをダウンロードしてリスト化する
+    # Tatoebaデータセットをダウンロードしてリスト化する
     dl.dl_tatoeba(repo_path)
-    en_ls, ja_ls = dl.json2list(repo_path)
+    tatoeba_en_ls, tatoeba_ja_ls = dl.json2list(repo_path)
 
+    # WikiMatrixデータセットをダウンロードしてリスト化する
+    wiki_en_ls, wiki_ja_ls = wiki.dl_WikiMatrix(repo_path)
+
+    en_ls = tatoeba_en_ls + wiki_en_ls
+    ja_ls = tatoeba_ja_ls + wiki_ja_ls
     # 英文と日本文をそれぞれトークン化する
     print("\nTokenizing English sentences...")
     en_ls = [tk.tokenize_en(en) for en in t.tqdm(en_ls)]
