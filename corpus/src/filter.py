@@ -58,7 +58,7 @@ def ratio(s1, s2):
 def ratio_filter(en_sents, ja_sents):
     ratios, en_ls, ja_ls = [], [], []
 
-    print("Filtering by ratio...")
+    print("\nFiltering by ratio...")
     for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         len_en, len_ja = lens(en, ja)
         if len_en == 0 or len_ja == 0:
@@ -86,7 +86,7 @@ def ratio_filter(en_sents, ja_sents):
 
 def get_freq_dict(en_sents, ja_sents):
     en_dict, ja_dict = {}, {}
-    print("Creating frequency lists...")
+    print("\nCreating frequency lists...")
     for en_sent, ja_sent in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         en_sent = en_sent.strip().split()
         ja_sent = ja_sent.strip().split()
@@ -124,7 +124,7 @@ def freq_filter(en_sents, ja_sents, freq_thld):
     en_ls, ja_ls = [], []
     en_freq, ja_freq = get_freq_dict(en_sents, ja_sents)
     en_freq, ja_freq = sort_freq_dict(en_freq, ja_freq)
-    print("Filtering by frequency...")
+    print("\nFiltering by frequency...")
     en_ls = [replace_by_unk(en_sent, en_freq, freq_thld)
              for en_sent in t.tqdm(en_sents)]
     ja_ls = [replace_by_unk(ja_sent, ja_freq, freq_thld)
