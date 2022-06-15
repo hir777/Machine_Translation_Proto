@@ -48,7 +48,6 @@ class Tokenization():
         if self.threading:
             tail = 0
             for i in range(self.num_threads):
-                # 実行した順番で結果が求まるように、早く実行した方がサイズが小さくなるようにする
                 head = tail
                 tail = tail + \
                     size if i != (self.num_threads-1) else num_sents-1
