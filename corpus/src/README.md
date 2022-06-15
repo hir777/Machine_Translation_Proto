@@ -18,3 +18,5 @@ pip install unidic
 python -m unidic download
 
 https://atmarkit.itmedia.co.jp/ait/articles/2102/05/news027.html
+
+python3 create_dataset.py --repo_path /home/hiroshi/Machine_Translation_Proto/ --tatoeba --len_filter --overlap_filter --ratio_filter --freq_filter --threading --num_threads 4
