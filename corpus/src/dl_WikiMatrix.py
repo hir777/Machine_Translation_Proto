@@ -2,7 +2,7 @@ from tqdm import tqdm
 import os
 
 def dl_WikiMatrix(repo_path):
-    num_sents = 3895992
+    num_sents = 2156862
     os.system("cd {}".format(os.path.join(repo_path, "corpus/data/")))
     os.system("wget --progress=bar https://dl.fbaipublicfiles.com/laser/WikiMatrix/v1/WikiMatrix.en-ja.tsv.gz")
     os.system("gunzip WikiMatrix.en-ja.tsv.gz")
@@ -10,7 +10,7 @@ def dl_WikiMatrix(repo_path):
 
     en_ls, ja_ls = [], []
     with open("WikiMatrix.en-ja.tsv", 'r') as f:
-        print("Downloading WikiMatrix dataset...")
+        print("\nDownloading WikiMatrix dataset...")
         for line in tqdm(f, total=num_sents):
             _, en, ja = f.readline().rstrip().split('\t')
             en_ls.append(en + '\n')
