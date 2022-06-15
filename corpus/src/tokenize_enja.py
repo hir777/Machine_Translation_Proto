@@ -1,3 +1,4 @@
+from lib2to3.pgen2.tokenize import tokenize
 import re
 import sacremoses as sm
 import unicodedata
@@ -8,72 +9,83 @@ from tqdm import tqdm
 
 
 class Tokenization():
-    def __init__(self, lang, threading=False, num_threads=2):
-        self.lang = lang
+    def __init__(self, threading=False, num_threads=2):
         self.threading = threading
-        if lang == "en":
-            self.tokenizer = sm.MosesTokenizer(lang='en')
-        elif lang == "ja":
-            self.tokenizer = MeCab.Tagger("-Owakati")
-        else:
-            raise ValueError(
-                "Error: Language %s is not supported." % self.lang)
+        self.en_tokenizer = sm.MosesTokenizer(lang='en')
+        self.ja_tokenizer = MeCab.Tagger("-Owakati")
         self.num_threads = num_threads
-        self.out = []   # 各部分リストをトークン化した時の結果をまとめて保持するためのリスト
+        self.out = []   # 各部分リストをトークン化した時の結果をまとめて保持するためのリスト(日英)
 
     def tokenize_en(self, en_sents: List[str]):
         en_ls = []
         for en in en_sents:
             en = unicodedata.normalize("NFKC", en)
             en = re.sub(
-                self.tokenizer.AGGRESSIVE_HYPHEN_SPLIT[0], r'\1 - ', en)
-            en = self.tokenizer.tokenize(en, escape=False)
+                self.en_tokenizer.AGGRESSIVE_HYPHEN_SPLIT[0], r'\1 - ', en)
+            en = self.en_tokenizer.tokenize(en, escape=False)
             en = ' '.join(en).lower()
             en_ls.append(en)
-        self.out.append(en_ls)
+        return en_ls
 
     def tokenize_ja(self, ja_sents: List[str]):
         ja_ls = []
         for ja in ja_sents:
             ja = unicodedata.normalize("NFKC", ja)
-            ja = self.tokenizer.parse(ja)
+            ja = self.ja_tokenizer.parse(ja)
             ja_ls.append(ja)
-        self.out.append(ja_ls)
+        return ja_ls
 
-    def tokenize(self, sents: List[str]):
-        num_sents = len(sents)
+    def tokenize_en_ja(self, en_sents: List[str], ja_sents: List[str]):
+        en_ls = self.tokenize_en(en_sents)
+        ja_ls = self.tokenize_ja(ja_sents)
+        self.out.append([en.replace('\t', '') + '\t' + ja.replace('\t', '')
+                        for en, ja in zip(en_ls, ja_ls)])
+
+    def tokenize(self, en_sents: List[str], ja_sents: List[str]):
+        num_sents = min(len(en_sents), len(ja_sents))
         size = int(num_sents / self.num_threads)
         threads = []
-        tgt = self.tokenize_en if self.lang == "en" else self.tokenize_ja
         if self.threading:
+            tail = 0
             for i in range(self.num_threads):
-                head = i * size
-                tail = (i+1) * size if i != (self.num_threads-1) else -1
-                thread = threading.Thread(target=tgt, args=[sents[head: tail]])
+                # 実行した順番で結果が求まるように、早く実行した方がサイズが小さくなるようにする
+                head = tail
+                tail = tail + \
+                    size if i != (self.num_threads-1) else num_sents-1
+                thread = threading.Thread(target=self.tokenize_en_ja, args=[
+                                          en_sents[head: tail], ja_sents[head: tail]])
                 threads.append(thread)
                 thread.start()
 
-            for thread in tqdm(threads):
+            for thread in threads:
                 thread.join()
-            tgt([sents[-1]])
+            self.tokenize_en_ja([en_sents[num_sents-1]],
+                                [ja_sents[num_sents-1]])
         else:
-            tgt(sents)
+            self.tokenize_en_ja(en_sents[:num_sents], ja_sents[:num_sents])
 
-        res = [sent for sents in self.out for sent in sents]
-        return res
+        bitexts = [sent for sents in self.out for sent in sents]
+        en_ls, ja_ls = [], []
+        for bitext in bitexts:
+            en, ja = bitext.split('\t')
+            en_ls.append(en.strip())
+            ja_ls.append(ja.strip())
+
+        return en_ls, ja_ls
 
 
 if __name__ == "__main__":
-    ja_ls = ["何かしてみましょう。",
-             "私は眠らなければなりません。",
-             "そろそろ寝なくちゃ。",
-             "今日は６月１８日で、ムーリエルの誕生日です！",
-             "ムーリエルは２０歳になりました。",
+    en_ls = ["I have to sleep.",
+             "Michael is twenty years old today.",
+             "The password is Muriel.",
+             "I will come back soon."]
+    ja_ls = ["私は眠らなければなりません。",
+             "マイケルは今日２０歳になりました。",
              "パスワードは「Muiriel」です。",
-             "まもなく私は戻って来ます。",
-             "私は言葉に詰まった。"
+             "まもなく私は戻って来ます。"
              ]
 
-    t = Tokenization(lang="ja", threading=True)
-    out = t.tokenize(ja_ls)
-    print(''.join(out))
+    t = Tokenization(threading=False)
+    en_sents, ja_sents = t.tokenize(en_ls, ja_ls)
+    print(en_sents)
+    print(ja_sents)
