@@ -4,10 +4,11 @@ import unicodedata
 import MeCab
 import threading
 from typing import List
+from tqdm import tqdm
 
 
 class Tokenization():
-    def __init__(self, lang, threading=False, num_threads=4):
+    def __init__(self, lang, threading=False, num_threads=2):
         self.lang = lang
         self.threading = threading
         if lang == "en":
@@ -52,7 +53,7 @@ class Tokenization():
                 threads.append(thread)
                 thread.start()
 
-            for thread in threads:
+            for thread in tqdm(threads):
                 thread.join()
             tgt([sents[-1]])
         else:
