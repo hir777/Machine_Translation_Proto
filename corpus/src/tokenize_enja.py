@@ -45,7 +45,6 @@ class Tokenization():
         threads = []
         tgt = self.tokenize_en if self.lang == "en" else self.tokenize_ja
         if self.threading:
-            tgt([sents[-1]])
             for i in range(self.num_threads):
                 head = i * size
                 tail = (i+1) * size if i != (self.num_threads-1) else -1
@@ -55,6 +54,7 @@ class Tokenization():
 
             for thread in threads:
                 thread.join()
+            tgt([sents[-1]])
         else:
             tgt(sents)
 
