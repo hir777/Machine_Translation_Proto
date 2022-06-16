@@ -1,4 +1,3 @@
-from lib2to3.pgen2.tokenize import tokenize
 import re
 import sacremoses as sm
 import unicodedata
