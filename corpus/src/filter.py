@@ -92,7 +92,7 @@ def ratio_filter(en_sents, ja_sents):
 def get_freq_dict(en_sents, ja_sents, en_queue, ja_queue):
     en_dict, ja_dict = {}, {}
     print("\nCreating frequency lists...: (PID {})".format(os.getpid()))
-    for en_sent, ja_sent in t.tqdm(zip(en_sents, ja_sents), total=min(len(en_sents), len(ja_sents))):
+    for en_sent, ja_sent in zip(en_sents, ja_sents):
         en_sent = en_sent.strip().split()
         ja_sent = ja_sent.strip().split()
         for en in en_sent:
