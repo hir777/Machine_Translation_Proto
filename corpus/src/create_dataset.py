@@ -30,10 +30,10 @@ if __name__ == "__main__":
                         help="turn on/off the freq filter")
     parser.add_argument("--freq_thld", type=int, default=2,
                         help="threshold for filtering words by frequency")
-    parser.add_argument("--multi_proc", action="store_true",
-                        help="turn on/off threading to accelerate tokenization")
+    parser.add_argument("--multiproc", action="store_true",
+                        help="turn on/off multi-processing to accelerate tokenization and filtering by frequency")
     parser.add_argument("--num_procs", type=int, default=4,
-                        help="the number of processes for processing tokenization. \n Default: 4   Valid range: 1 <= num_procs <= 8")
+                        help="the number of processes \n Default: 4   Valid range: 1 <= num_procs <= 8")
 
     args = parser.parse_args()
     repo_path = args.repo_path
@@ -61,14 +61,14 @@ if __name__ == "__main__":
 
     # 英文と日本文をそれぞれトークン化する
     num_procs = args.num_procs
-    if num_procs < 1 or num_procs > 8:
+    if num_procs < 1 or num_procs > 16:
         print("The value num_procs %d is invalid. " % num_procs)
         print("It is replaced by %d." % 4)
         num_procs = 4
 
     print("\nTokenizing sentences...")
     start = time.time()
-    tkn = tkn.Tokenization(multiproc=args.multi_proc,
+    tkn = tkn.Tokenization(multiproc=args.multiproc,
                            num_procs=num_procs)
     en_ls, ja_ls = tkn.tokenize(en_ls, ja_ls)
     end = time.time()
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     if args.ratio_filter:
         en_ls, ja_ls = fl.ratio_filter(en_ls, ja_ls)
     if args.freq_filter:
-        en_ls, ja_ls = fl.freq_filter(en_ls, ja_ls, args.freq_thld)
+        en_ls, ja_ls = fl.freq_filter(en_ls, ja_ls, args.freq_thld, args.multiproc, num_procs, sort_fd=False)
 
     split_ratio = {"train": 0.8, "valid": 0.1, "test": 0.1}
     spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path)
