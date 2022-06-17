@@ -1,6 +1,11 @@
-from collections import defaultdict
+from asyncio.format_helpers import _format_callback_source
+import queue
+from matplotlib.pyplot import get_figlabels
 import tqdm as t
 import numpy as np
+import multiprocessing as mp
+import os
+import time
 
 
 def lens(s1, s2):
@@ -84,10 +89,10 @@ def ratio_filter(en_sents, ja_sents):
     return en_ls, ja_ls
 
 
-def get_freq_dict(en_sents, ja_sents):
+def get_freq_dict(en_sents, ja_sents, en_queue, ja_queue):
     en_dict, ja_dict = {}, {}
-    print("\nCreating frequency lists...")
-    for en_sent, ja_sent in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
+    print("\nCreating frequency lists...: (PID {})".format(os.getpid()))
+    for en_sent, ja_sent in t.tqdm(zip(en_sents, ja_sents), total=min(len(en_sents), len(ja_sents))):
         en_sent = en_sent.strip().split()
         ja_sent = ja_sent.strip().split()
         for en in en_sent:
@@ -102,7 +107,9 @@ def get_freq_dict(en_sents, ja_sents):
             else:
                 ja_dict[ja] = 1
 
-    return en_dict, ja_dict
+    en_queue.put(en_dict)
+    ja_queue.put(ja_dict)
+    print("\nFinished creating frequency lists...: (PID {})".format(os.getpid()))
 
 
 def sort_freq_dict(en_dict, ja_dict):
@@ -114,16 +121,66 @@ def sort_freq_dict(en_dict, ja_dict):
     return en_freq, ja_freq
 
 
+def concat_freq_dicts(en_queue, ja_queue, multiproc=False, num_procs=4):
+    if not multiproc:
+        num_procs = 1
+    en_freq_ls, ja_freq_ls = [], []
+    for _ in range(num_procs):
+        en_freq_ls.append(en_queue.get())
+        ja_freq_ls.append(ja_queue.get())
+
+    en_freq_dict, ja_freq_dict = {}, {}
+    if multiproc:
+        for freq_dict in en_freq_ls:
+            for key, val in freq_dict.items():
+                en_freq_dict[key] = val + \
+                    en_freq_dict[key] if key in en_freq_dict else val
+
+        for freq_dict in ja_freq_ls:
+            for key, val in freq_dict.items():
+                ja_freq_dict[key] = val + \
+                    ja_freq_dict[key] if key in ja_freq_dict else val
+    else:
+        en_freq_dict = en_freq_ls[0]
+        ja_freq_dict = ja_freq_ls[0]
+
+    return en_freq_dict, ja_freq_dict
+
+
 def replace_by_unk(sent, freq_dict, freq_thld):
     w_ls = [w if freq_dict[w] >=
             freq_thld else "<unk>" for w in sent.strip().split()]
     return ' '.join(w_ls)
 
 
-def freq_filter(en_sents, ja_sents, freq_thld):
+def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, sort_fd=False):
+    en_queue = mp.Queue()
+    ja_queue = mp.Queue()
+    num_sents = min(len(en_sents), len(ja_sents))
+    num_procs = num_procs if multiproc and num_procs > 1 else 1
+    num_procs = num_procs if num_procs <= num_sents else 2
+    size = int(num_sents / num_procs)
     en_ls, ja_ls = [], []
-    en_freq, ja_freq = get_freq_dict(en_sents, ja_sents)
-    en_freq, ja_freq = sort_freq_dict(en_freq, ja_freq)
+
+    start = time.time()
+    if multiproc:
+        tgt_fun = get_freq_dict
+        for i in range(num_procs):
+            head = i * size
+            tail = (i+1) * size if i != (num_procs-1) else num_sents
+            proc = mp.Process(target=tgt_fun, args=[
+                              en_sents[head:tail], ja_sents[head:tail], en_queue, ja_queue])
+            proc.start()
+    else:
+        get_freq_dict(en_sents[:num_sents],
+                      ja_sents[:num_sents], en_queue, ja_queue)
+    end = time.time()
+
+    en_freq, ja_freq = concat_freq_dicts(
+        en_queue, ja_queue, multiproc, num_procs)
+    if sort_fd:
+        en_freq, ja_freq = sort_freq_dict(en_freq, ja_freq)
+    print("{} seconds for creating a frequency dict".format(end-start))
     print("\nFiltering by frequency...")
     en_ls = [replace_by_unk(en_sent, en_freq, freq_thld)
              for en_sent in t.tqdm(en_sents)]
@@ -132,10 +189,41 @@ def freq_filter(en_sents, ja_sents, freq_thld):
     return en_ls, ja_ls
 
 
+# テストコード
 if __name__ == "__main__":
-    en_ls = ["I have a pen .", "I have a pen .", "I am a dog lover"]
-    ja_ls = ["私 は ペン を 持って いる 。", "私 は 鉛筆 を 持って いる 。", "私 は 愛犬家 です 。"]
+    # フィルター全体のテストコード
+    en_ls = ["I have a pen .", "I have a pen .",
+             "I am a dog lover .", "I am a bilingual ."]
+    ja_ls = ["私 は ペン を 持って いる 。", "私 は 鉛筆 を 持って いる 。",
+             "私 は 愛犬家 です 。", "私 は バイリンガル です 。"]
     en_ls, ja_ls = overlap_filter(en_ls, ja_ls)
-    en_ls, ja_ls = freq_filter(en_ls, ja_ls, 3)
+    en_ls, ja_ls = freq_filter(
+        en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=4, sort_fd=True)
     print(en_ls)
     print(ja_ls)
+
+    # 辞書の結合をテストするためのコード
+    #d1 = {"A": 20, "B": 33, "D": 4}
+    #d2 = {"A": 32, "B": 44, "C": 5}
+    #d3 = {"A": 20, "B": 33, "D": 4}
+    #d4 = {"A": 32, "B": 44, "C": 5}
+#
+    #queue_a = mp.Queue()
+    #queue_b = mp.Queue()
+    #queue_c = mp.Queue()
+    #queue_d = mp.Queue()
+#
+    # queue_a.put(d1)
+    # queue_a.put(d2)
+    # queue_b.put(d3)
+    # queue_b.put(d4)
+#
+    # queue_c.put(d1)
+    # queue_d.put(d2)
+    #a_dict, b_dict = concat_freq_dicts(queue_a, queue_b, True,  2)
+    #c_dict, d_dict = concat_freq_dicts(queue_c, queue_d, False, 8)
+#
+    # print(a_dict)
+    # print(b_dict)
+    # print(c_dict)
+    # print(d_dict)
