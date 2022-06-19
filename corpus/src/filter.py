@@ -91,7 +91,7 @@ def ratio_filter(en_sents, ja_sents):
 
 def get_freq_dict(en_sents, ja_sents, en_queue, ja_queue):
     en_dict, ja_dict = {}, {}
-    print("\nCreating frequency lists...: (PID {})".format(os.getpid()))
+    print("Creating frequency lists...: (PID {})".format(os.getpid()))
     for en_sent, ja_sent in zip(en_sents, ja_sents):
         en_sent = en_sent.strip().split()
         ja_sent = ja_sent.strip().split()
@@ -109,7 +109,7 @@ def get_freq_dict(en_sents, ja_sents, en_queue, ja_queue):
 
     en_queue.put(en_dict)
     ja_queue.put(ja_dict)
-    print("\nFinished creating frequency lists...: (PID {})".format(os.getpid()))
+    print("Finished creating frequency lists...: (PID {})".format(os.getpid()))
 
 
 def sort_freq_dict(en_dict, ja_dict):
@@ -130,13 +130,14 @@ def concat_freq_dicts(en_queue, ja_queue, multiproc=False, num_procs=4):
         ja_freq_ls.append(ja_queue.get())
 
     en_freq_dict, ja_freq_dict = {}, {}
+    print("\nConcatenating frequecy dictionaries...")
     if multiproc:
-        for freq_dict in en_freq_ls:
+        for freq_dict in t.tqdm(en_freq_ls):
             for key, val in freq_dict.items():
                 en_freq_dict[key] = val + \
                     en_freq_dict[key] if key in en_freq_dict else val
 
-        for freq_dict in ja_freq_ls:
+        for freq_dict in t.tqdm(ja_freq_ls):
             for key, val in freq_dict.items():
                 ja_freq_dict[key] = val + \
                     ja_freq_dict[key] if key in ja_freq_dict else val
@@ -171,6 +172,7 @@ def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, sor
             proc = mp.Process(target=tgt_fun, args=[
                               en_sents[head:tail], ja_sents[head:tail], en_queue, ja_queue])
             proc.start()
+
     else:
         get_freq_dict(en_sents[:num_sents],
                       ja_sents[:num_sents], en_queue, ja_queue)
@@ -178,6 +180,12 @@ def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, sor
 
     en_freq, ja_freq = concat_freq_dicts(
         en_queue, ja_queue, multiproc, num_procs)
+    # 以下の４行のコードはmultiprocessing.Queueを利用した後の後処理として必要
+    # 書き忘れた場合、デッドロック状態になる
+    #en_queue.close()
+    #ja_queue.close()
+    #en_queue.join_thread()
+    #ja_queue.join_thread()
     if sort_fd:
         en_freq, ja_freq = sort_freq_dict(en_freq, ja_freq)
     print("{} seconds for creating a frequency dict".format(end-start))
@@ -198,7 +206,7 @@ if __name__ == "__main__":
              "私 は 愛犬家 です 。", "私 は バイリンガル です 。"]
     en_ls, ja_ls = overlap_filter(en_ls, ja_ls)
     en_ls, ja_ls = freq_filter(
-        en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=4, sort_fd=True)
+        en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=8, sort_fd=True)
     print(en_ls)
     print(ja_ls)
 
