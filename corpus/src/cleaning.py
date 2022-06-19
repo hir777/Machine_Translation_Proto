@@ -57,17 +57,17 @@ def cleaning(en_sents, ja_sents):
 
     cleaned_en, cleaned_ja = [], []
     length = min(len(en_sents), len(ja_sents))
-    print("\nCleaning English sentences...")
+    print("\nCleaning sentences...")
 
     for en_sent, ja_sent in tqdm(zip(en_sents, ja_sents), total=length):
         en_sent = unicodedata.normalize("NFKC", en_sent).strip()
         ja_sent = unicodedata.normalize("NFKC", ja_sent).strip()
-
         en_sent = urls.sub('', en_sent)
         ja_sent = urls.sub('', ja_sent)
 
-        en_sent = email.sub('', en_sent)
-        ja_sent = email.sub('', ja_sent)
+        # メールアドレスにマッチする正規表現を用いると途中でフリーズする
+        #en_sent = email.sub('', en_sent)
+        #ja_sent = email.sub('', ja_sent)
 
         en_sent = msc.sub('', en_sent)
         ja_sent = msc.sub('', ja_sent)
@@ -75,9 +75,9 @@ def cleaning(en_sents, ja_sents):
         en_sent = newlines.sub('', en_sent)
         ja_sent = newlines.sub('', ja_sent)
 
+
         en_sent = emoji.sub('', en_sent)
         ja_sent = emoji.sub('', ja_sent)
-
         en_sent = brackets.sub('', en_sent)
         ja_sent = brackets.sub('', ja_sent)
 
@@ -93,8 +93,6 @@ def cleaning(en_sents, ja_sents):
         cleaned_en.append(en_sent.strip())
         cleaned_ja.append(ja_sent.strip())
 
-    print(cleaned_en)
-    print(cleaned_ja)
     en_tf_ls = are_en(cleaned_en)
     ja_tf_ls = are_ja(cleaned_ja)
 
@@ -119,7 +117,7 @@ if __name__ == "__main__":
 
     ja_sents = [
         "当時 の 😀😃学校 は 科学 、 工学 、 🤩芸術 の コース を 開講 し 、 それ ら の コース は ロンドン 大学 より 学位 の 承認 を 受け て い た 。",
-        "^ ピタリ 賞 を 獲得 し た 。http://en.wikipedia.org/wiki/Giampiero_Fossati",
+        "^ ピタリMHz 賞 を 獲得 し た 。http://en.wikipedia.org/wiki/Giampiero_Fossati",
         "er wurde in haarlem als sohn von aart jansz geboren und wurde rechtsanwalt.",
         "彼は「日系アメリカ人二世です。０IV」と言った。",
         "私はペン　　を持っています。*💯"
