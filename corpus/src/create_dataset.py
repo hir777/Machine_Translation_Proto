@@ -1,4 +1,4 @@
-import dl_tatoeba as tatoe
+import dl_tatoeba as tatoeba
 import filter as fl
 import split_dataset as spl
 import argparse
@@ -6,6 +6,12 @@ import dl_WikiMatrix as wiki
 import tokenize_enja as tkn
 import sys
 import time
+from cleaning import cleaning
+
+
+def print_sents(sents):
+    for idx, sent in enumerate(sents):
+        print("{}:   {}".format(idx, sent))
 
 
 if __name__ == "__main__":
@@ -32,8 +38,10 @@ if __name__ == "__main__":
                         help="threshold for filtering words by frequency")
     parser.add_argument("--multiproc", action="store_true",
                         help="turn on/off multi-processing to accelerate tokenization and filtering by frequency")
-    parser.add_argument("--num_procs", type=int, default=4,
-                        help="the number of processes \n Default: 4   Valid range: 1 <= num_procs <= 8")
+    parser.add_argument("--num_procs_tkn", type=int, default=8,
+                        help="the number of processes to accelerate tokenization\n Default: 8   Valid range: 1 <= num_procs_tkn <= 16")
+    parser.add_argument("--num_procs_freq", type=int, default=4,
+                        help="the number of processes to accelerate creating frequency dictionaries\n Default: 4   Valid range: 1 <= num_procs_tkn <= 8")
 
     args = parser.parse_args()
     repo_path = args.repo_path
@@ -41,8 +49,8 @@ if __name__ == "__main__":
     en_tmp_ls, ja_tmp_ls = [], []
     # Tatoebaデータセットをダウンロードしてリスト化する
     if args.tatoeba:
-        tatoe.dl_tatoeba(repo_path)
-        tatoeba_en, tatoeba_ja = tatoe.json2list(repo_path)
+        tatoeba.dl_tatoeba(repo_path)
+        tatoeba_en, tatoeba_ja = tatoeba.json2list(repo_path)
         en_tmp_ls.append(tatoeba_en)
         ja_tmp_ls.append(tatoeba_ja)
 
@@ -59,17 +67,19 @@ if __name__ == "__main__":
         en_ls = [en_sent for en_sents in en_tmp_ls for en_sent in en_sents]
         ja_ls = [ja_sent for ja_sents in ja_tmp_ls for ja_sent in ja_sents]
 
+    en_ls, ja_ls = cleaning(en_ls, ja_ls)
+
     # 英文と日本文をそれぞれトークン化する
-    num_procs = args.num_procs
-    if num_procs < 1 or num_procs > 16:
-        print("The value num_procs %d is invalid. " % num_procs)
-        print("It is replaced by %d." % 4)
-        num_procs = 4
+    num_procs_tkn = args.num_procs_tkn
+    if num_procs_tkn < 1 or num_procs_tkn > 16:
+        print("The value num_procs_tkn %d is invalid. " % num_procs_tkn)
+        print("It is replaced by %d." % 8)
+        num_procs_tkn = 8
 
     print("\nTokenizing sentences...")
     start = time.time()
     tkn = tkn.Tokenization(multiproc=args.multiproc,
-                           num_procs=num_procs)
+                           num_procs=num_procs_tkn)
     en_ls, ja_ls = tkn.tokenize(en_ls, ja_ls)
     end = time.time()
     print("%d seconds for tokenizing sentences" % int(end - start))
@@ -94,7 +104,8 @@ if __name__ == "__main__":
     if args.ratio_filter:
         en_ls, ja_ls = fl.ratio_filter(en_ls, ja_ls)
     if args.freq_filter:
-        en_ls, ja_ls = fl.freq_filter(en_ls, ja_ls, args.freq_thld, args.multiproc, num_procs, sort_fd=False)
+        en_ls, ja_ls = fl.freq_filter(
+            en_ls, ja_ls, args.freq_thld, args.multiproc, args.num_procs_freq, sort_fd=False)
 
     split_ratio = {"train": 0.8, "valid": 0.1, "test": 0.1}
     spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path)
