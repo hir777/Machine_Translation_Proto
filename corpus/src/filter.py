@@ -1,3 +1,13 @@
+"""
+=== DESCRIPTION
+このファイルには、長さ、重複、英文と和文の長さの比率、単語の出現頻度に基づいたフィルタ関数が実装されています。
+
+各フィルタ関数への入力形式として、MosesTokenizer (英語) や MeCab (日本語) を用いてトークン化された文字列のリストを想定しています。
+また、トークン化の前にクリーニング処理を行って、ノイズ(URL、日本語と英語以外の言語の文が紛れ込んでいるなど)を取り除いておくことをおすすめします。
+
+freq_filter関数は、処理の高速化のためにマルチプロセス処理に対応しています。
+"""
+
 from tqdm import tqdm
 import numpy as np
 import multiprocessing as mp
@@ -15,11 +25,18 @@ def lens(s1, s2):
 
 
 def trunc(x, max):
-    x_len = len(x.strip().split())
+    x = x.strip()
+    x_len = len(x.split())
     return x if x_len <= max else x[:max]
 
 
-def len_filter(en_sents, ja_sents, min, max, truncate=False):
+def len_filter(en_sents, ja_sents, min, max, truncate=True):
+    """
+    英文、和文の双方の文の長さに基づいてフィルタをかける関数
+    1. 少なくとも一方の文の長さがminよりも短いときは、双方の文が取り除かれます。
+    2. 少なくとも一方の文の長さがmaxよりも長いときは、適切な長さになるようにカットされます。
+       (この場合は、1と2の両方に該当しない限り、取り除かれない)
+    """
     en_ls, ja_ls = [], []
     print("\nFiltering by length...")
     for en, ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
@@ -35,6 +52,14 @@ def len_filter(en_sents, ja_sents, min, max, truncate=False):
 
 
 def overlap_filter(en_sents, ja_sents):
+    """
+    文の重複に基づいてフィルタをかける関数
+    英文と和文のリストの中に、全く同じペアが複数見つかったときにのみ、そのペアを削除する。
+    一方の言語の同じ文が、もう一方の言語の異なる複数の文に対応付いていたときは、削除しない。
+
+    削除されるケース    (I am a hungry., 私はお腹がすいた。) (I am a hungry., 私はお腹がすいた。)
+    削除されないケース  (I am a hungry., 私はお腹がすいた。) (I am a hungry., 私は腹ペコだ。)
+    """
     en_ls, ja_ls = [], []
     en_dict = {sent: 0 for sent in en_sents}
     ja_dict = {sent: 0 for sent in ja_sents}
@@ -55,12 +80,14 @@ def overlap_filter(en_sents, ja_sents):
     return en_ls, ja_ls
 
 
-def ratio(s1, s2):
-    len_s1, len_s2 = lens(s1, s2)
+def ratio(len_s1, len_s2):
     return len_s1 * 1.0 / len_s2
 
 
-def ratio_filter(en_sents, ja_sents):
+def ratio_filter(en_sents, ja_sents, alpha=1.96):
+    """
+    英文と和文の長さの比率に基づいて、フィルタをかける関数
+    """
     ratios, en_ls, ja_ls = [], [], []
 
     print("\nFiltering by ratio...")
@@ -68,20 +95,20 @@ def ratio_filter(en_sents, ja_sents):
         len_en, len_ja = lens(en, ja)
         if len_en == 0 or len_ja == 0:
             continue
-        ratios.append(ratio(en, ja))
+        ratios.append(ratio(len_en, len_ja))
 
-    # ratioに関する統計情報を計算
+    # 英文と和文の長さの比率に関する統計情報を計算
     ratios = sorted(ratios)
     N = len(ratios)
     mean = np.mean(ratios)
-    std = np.std(ratios)
+    std = np.std(ratios)  # 標準偏差(データの散らばり具合を表す)
 
     for en, ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         len_en, len_ja = lens(en, ja)
         if len_en == 0 or len_ja == 0:
             continue
-        r = ratio(en, ja)
-        if (r < mean - 1.96 * std) or (r > mean + 1.96 * std):
+        r = ratio(len_en, len_ja)
+        if (r < mean - alpha * std) or (r > mean + alpha * std):
             continue
         en_ls.append(en)
         ja_ls.append(ja)
@@ -90,13 +117,17 @@ def ratio_filter(en_sents, ja_sents):
 
 
 def get_freq_dict(en_sents, ja_sents, en_queue, ja_queue):
+    """
+    単語の出現頻度表(辞書形式)を作成する関数
+    KEY: 単語名   VALUE: 出現頻度
+    """
     en_dict, ja_dict = defaultdict(int), defaultdict(int)
     print("Creating frequency lists...  (PID {})".format(os.getpid()))
     for en_sent, ja_sent in zip(en_sents, ja_sents):
         en_sent = en_sent.strip().split()
         ja_sent = ja_sent.strip().split()
 
-        # 下の二つのループを１つのループにまとめてはいけない（日本語文と英文では長さが違う）
+        # 下の二つのループを１つのループにまとめてはいけない（和文と英文では長さが違う）
         for en in en_sent:
             en_dict[en] += 1
         for ja in ja_sent:
@@ -152,23 +183,29 @@ def replace_by_unk(sent, freq_dict, freq_thld):
     return ' '.join(w_ls)
 
 
-def save_freq_distr(freq_dict, lang, descending=True, top_n=10):
+def save_freq_distr(freq_dict, path, lang, descending=True, top_n=10):
+    """
+    単語の出現頻度に関するヒストグラムをPNG形式の画像として保存する関数
+    """
     freq_dict = sort_freq_dict(freq_dict, descending)
     y = [int(freq) for freq in freq_dict.values()][:top_n]
     _min, _max = min(y), max(y)
     plt.bar(range(top_n), y)
     # 日本語をグラフタイトル、ｘ軸ラベル、ｙ軸ラベルで使う場合は pip で japanize-matplotlib をインストールする
     # インストール後、japanize-matplotlib を import する
-    plt.title("Distribution of words with frequencies (LANG={})".format(lang))
+    plt.title(
+        "Frequency Distribution (LANG={})".format(lang))
     plt.xlabel("Word")
     plt.ylabel("Frquency")
     plt.xticks(range(top_n), list(freq_dict.keys())[:top_n])
     plt.yticks(range(_min, _max+1))
-    # plt.show()
-    plt.savefig("{}_freq.png".format(lang))
+    plt.savefig(os.path.join(path, "{}_fd.png".format(lang)))
 
 
 def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, return_freq_dict=False):
+    """
+    指定されたしきい値よりも低い出現頻度を持つ単語を<unk>トークンで置き換える関数
+    """
     en_queue = mp.Queue()
     ja_queue = mp.Queue()
     num_sents = min(len(en_sents), len(ja_sents))
@@ -195,12 +232,6 @@ def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, ret
     print("{} seconds for creating a frequency dict".format(end-start))
     en_freq, ja_freq = concat_freq_dicts(
         en_queue, ja_queue, multiproc, num_procs)
-    # 以下の４行のコードはmultiprocessing.Queueを利用した後の後処理として必要
-    # 書き忘れた場合、デッドロック状態になる
-    # en_queue.close()
-    # ja_queue.close()
-    # en_queue.join_thread()
-    # ja_queue.join_thread()
     print("\nFiltering by frequency...")
     en_ls = [replace_by_unk(en_sent, en_freq, freq_thld)
              for en_sent in tqdm(en_sents)]
@@ -227,12 +258,12 @@ if __name__ == "__main__":
     print(ja_ls)
 
     # 単語の出現頻度に関するヒストグラムを表示する機能のテストコード
-    #_, _, en_freq_dict, ja_freq_dict = freq_filter(
+    # _, _, en_freq_dict, ja_freq_dict = freq_filter(
     #    en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=8, return_freq_dict=True)
 #
-    #save_freq_distr(freq_dict=en_freq_dict, lang="en",
+    # save_freq_distr(freq_dict=en_freq_dict, lang="en",
     #                descending=False, top_n=5)
-    #save_freq_distr(freq_dict=ja_freq_dict, lang="ja",
+    # save_freq_distr(freq_dict=ja_freq_dict, lang="ja",
     #                descending=True, top_n=10)
 
     # 辞書の結合をテストするためのコード
