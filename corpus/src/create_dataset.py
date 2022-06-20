@@ -18,6 +18,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='usage')
     parser.add_argument("--repo_path", type=str,
                         help="absolute path of Machine_Translation_Proto repository")
+    parser.add_argument("--cleaning", action="store_true",
+                        help="turn on/off the cleaning feature.")
     parser.add_argument("--tatoeba", action="store_true",
                         help="use Tatoeba dataset")
     parser.add_argument("--WikiMatrix", action="store_true",
@@ -47,6 +49,7 @@ if __name__ == "__main__":
     repo_path = args.repo_path
 
     en_tmp_ls, ja_tmp_ls = [], []
+
     # Tatoebaデータセットをダウンロードしてリスト化する
     if args.tatoeba:
         tatoeba.dl_tatoeba(repo_path)
@@ -67,7 +70,8 @@ if __name__ == "__main__":
         en_ls = [en_sent for en_sents in en_tmp_ls for en_sent in en_sents]
         ja_ls = [ja_sent for ja_sents in ja_tmp_ls for ja_sent in ja_sents]
 
-    en_ls, ja_ls = cleaning(en_ls, ja_ls)
+    if args.cleaning:
+        en_ls, ja_ls = cleaning(en_ls, ja_ls)
 
     # 英文と日本文をそれぞれトークン化する
     num_procs_tkn = args.num_procs_tkn
@@ -91,7 +95,7 @@ if __name__ == "__main__":
         if min < 1 or min > 16:
             print(
                 "The minimum length of sentences should be in a range: 1 <= min_len <= 16")
-            print("Specified min_len %d is replaced by %d" % (min, 4))
+            print("Specified min_len %d is replaced by %d" % (min, 6))
             min = 4
         if max < 16 or max > 256:
             print(
@@ -105,7 +109,7 @@ if __name__ == "__main__":
         en_ls, ja_ls = fl.ratio_filter(en_ls, ja_ls)
     if args.freq_filter:
         en_ls, ja_ls = fl.freq_filter(
-            en_ls, ja_ls, args.freq_thld, args.multiproc, args.num_procs_freq, sort_fd=False)
+            en_ls, ja_ls, args.freq_thld, args.multiproc, args.num_procs_freq)
 
-    split_ratio = {"train": 0.8, "valid": 0.1, "test": 0.1}
+    split_ratio = {"train": 0.90, "valid": 0.05, "test": 0.05}
     spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path)
