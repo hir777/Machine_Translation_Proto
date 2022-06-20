@@ -1,11 +1,11 @@
-from asyncio.format_helpers import _format_callback_source
-import queue
-from matplotlib.pyplot import get_figlabels
-import tqdm as t
+from tqdm import tqdm
 import numpy as np
 import multiprocessing as mp
 import os
 import time
+from collections import defaultdict
+from matplotlib import pyplot as plt
+import japanize_matplotlib
 
 
 def lens(s1, s2):
@@ -22,7 +22,7 @@ def trunc(x, max):
 def len_filter(en_sents, ja_sents, min, max, truncate=False):
     en_ls, ja_ls = [], []
     print("\nFiltering by length...")
-    for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
+    for en, ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         en_len, ja_len = lens(en, ja)
         if min <= en_len <= max and min <= ja_len <= max:
             en_ls.append(en)
@@ -40,7 +40,7 @@ def overlap_filter(en_sents, ja_sents):
     ja_dict = {sent: 0 for sent in ja_sents}
 
     print("\nFiltering by overlap...")
-    for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
+    for en, ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         if en_dict[en] == 0 and ja_dict[ja] == 0:
             en_ls.append(en)
             ja_ls.append(ja)
@@ -64,7 +64,7 @@ def ratio_filter(en_sents, ja_sents):
     ratios, en_ls, ja_ls = [], [], []
 
     print("\nFiltering by ratio...")
-    for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
+    for en, ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         len_en, len_ja = lens(en, ja)
         if len_en == 0 or len_ja == 0:
             continue
@@ -76,7 +76,7 @@ def ratio_filter(en_sents, ja_sents):
     mean = np.mean(ratios)
     std = np.std(ratios)
 
-    for en, ja in t.tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
+    for en, ja in tqdm(zip(en_sents, ja_sents), total=len(en_sents)):
         len_en, len_ja = lens(en, ja)
         if len_en == 0 or len_ja == 0:
             continue
@@ -90,35 +90,31 @@ def ratio_filter(en_sents, ja_sents):
 
 
 def get_freq_dict(en_sents, ja_sents, en_queue, ja_queue):
-    en_dict, ja_dict = {}, {}
-    print("Creating frequency lists...: (PID {})".format(os.getpid()))
+    en_dict, ja_dict = defaultdict(int), defaultdict(int)
+    print("Creating frequency lists...  (PID {})".format(os.getpid()))
     for en_sent, ja_sent in zip(en_sents, ja_sents):
         en_sent = en_sent.strip().split()
         ja_sent = ja_sent.strip().split()
-        for en in en_sent:
-            if en in en_dict:
-                en_dict[en] += 1
-            else:
-                en_dict[en] = 1
 
+        # 下の二つのループを１つのループにまとめてはいけない（日本語文と英文では長さが違う）
+        for en in en_sent:
+            en_dict[en] += 1
         for ja in ja_sent:
-            if ja in ja_dict:
-                ja_dict[ja] += 1
-            else:
-                ja_dict[ja] = 1
+            ja_dict[ja] += 1
 
     en_queue.put(en_dict)
     ja_queue.put(ja_dict)
     print("Finished creating frequency lists...: (PID {})".format(os.getpid()))
 
 
-def sort_freq_dict(en_dict, ja_dict):
-    en_freq, ja_freq = list(en_dict.items()), list(ja_dict.items())
-    en_freq.sort(key=lambda x: -x[1])
-    ja_freq.sort(key=lambda x: -x[1])
-    en_freq = {freq[0]: freq[1] for freq in en_freq}
-    ja_freq = {freq[0]: freq[1] for freq in ja_freq}
-    return en_freq, ja_freq
+def sort_freq_dict(freq_dict, descending=True):
+    freq_ls = list(freq_dict.items())
+    if descending:
+        freq_ls.sort(key=lambda x: -x[1])
+    else:
+        freq_ls.sort(key=lambda x: x[1])
+    freq_dict = {word: freq for word, freq in freq_ls}
+    return freq_dict
 
 
 def concat_freq_dicts(en_queue, ja_queue, multiproc=False, num_procs=4):
@@ -132,12 +128,14 @@ def concat_freq_dicts(en_queue, ja_queue, multiproc=False, num_procs=4):
     en_freq_dict, ja_freq_dict = {}, {}
     print("\nConcatenating frequecy dictionaries...")
     if multiproc:
-        for freq_dict in t.tqdm(en_freq_ls):
+        print("English:")
+        for freq_dict in tqdm(en_freq_ls):
             for key, val in freq_dict.items():
                 en_freq_dict[key] = val + \
                     en_freq_dict[key] if key in en_freq_dict else val
 
-        for freq_dict in t.tqdm(ja_freq_ls):
+        print("Japanese:")
+        for freq_dict in tqdm(ja_freq_ls):
             for key, val in freq_dict.items():
                 ja_freq_dict[key] = val + \
                     ja_freq_dict[key] if key in ja_freq_dict else val
@@ -154,7 +152,23 @@ def replace_by_unk(sent, freq_dict, freq_thld):
     return ' '.join(w_ls)
 
 
-def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, sort_fd=False):
+def save_freq_distr(freq_dict, lang, descending=True, top_n=10):
+    freq_dict = sort_freq_dict(freq_dict, descending)
+    y = [int(freq) for freq in freq_dict.values()][:top_n]
+    _min, _max = min(y), max(y)
+    plt.bar(range(top_n), y)
+    # 日本語をグラフタイトル、ｘ軸ラベル、ｙ軸ラベルで使う場合は pip で japanize-matplotlib をインストールする
+    # インストール後、japanize-matplotlib を import する
+    plt.title("Distribution of words with frequencies (LANG={})".format(lang))
+    plt.xlabel("Word")
+    plt.ylabel("Frquency")
+    plt.xticks(range(top_n), list(freq_dict.keys())[:top_n])
+    plt.yticks(range(_min, _max+1))
+    # plt.show()
+    plt.savefig("{}_freq.png".format(lang))
+
+
+def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, return_freq_dict=False):
     en_queue = mp.Queue()
     ja_queue = mp.Queue()
     num_sents = min(len(en_sents), len(ja_sents))
@@ -178,23 +192,25 @@ def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, sor
                       ja_sents[:num_sents], en_queue, ja_queue)
     end = time.time()
 
+    print("{} seconds for creating a frequency dict".format(end-start))
     en_freq, ja_freq = concat_freq_dicts(
         en_queue, ja_queue, multiproc, num_procs)
     # 以下の４行のコードはmultiprocessing.Queueを利用した後の後処理として必要
     # 書き忘れた場合、デッドロック状態になる
-    #en_queue.close()
-    #ja_queue.close()
-    #en_queue.join_thread()
-    #ja_queue.join_thread()
-    if sort_fd:
-        en_freq, ja_freq = sort_freq_dict(en_freq, ja_freq)
-    print("{} seconds for creating a frequency dict".format(end-start))
+    # en_queue.close()
+    # ja_queue.close()
+    # en_queue.join_thread()
+    # ja_queue.join_thread()
     print("\nFiltering by frequency...")
     en_ls = [replace_by_unk(en_sent, en_freq, freq_thld)
-             for en_sent in t.tqdm(en_sents)]
+             for en_sent in tqdm(en_sents)]
     ja_ls = [replace_by_unk(ja_sent, ja_freq, freq_thld)
-             for ja_sent in t.tqdm(ja_sents)]
-    return en_ls, ja_ls
+             for ja_sent in tqdm(ja_sents)]
+
+    if return_freq_dict:
+        return en_ls, ja_ls, en_freq, ja_freq
+    else:
+        return en_ls, ja_ls
 
 
 # テストコード
@@ -206,9 +222,18 @@ if __name__ == "__main__":
              "私 は 愛犬家 です 。", "私 は バイリンガル です 。"]
     en_ls, ja_ls = overlap_filter(en_ls, ja_ls)
     en_ls, ja_ls = freq_filter(
-        en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=8, sort_fd=True)
+        en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=8)
     print(en_ls)
     print(ja_ls)
+
+    # 単語の出現頻度に関するヒストグラムを表示する機能のテストコード
+    #_, _, en_freq_dict, ja_freq_dict = freq_filter(
+    #    en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=8, return_freq_dict=True)
+#
+    #save_freq_distr(freq_dict=en_freq_dict, lang="en",
+    #                descending=False, top_n=5)
+    #save_freq_distr(freq_dict=ja_freq_dict, lang="ja",
+    #                descending=True, top_n=10)
 
     # 辞書の結合をテストするためのコード
     #d1 = {"A": 20, "B": 33, "D": 4}
