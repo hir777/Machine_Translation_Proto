@@ -34,13 +34,20 @@ class Tokenization():
         return ja_ls
 
     def tokenize_en_ja(self, queue, en_sents: List[str], ja_sents: List[str]):
+        print("Tokenization [Process ID: {}] started.".format(
+            os.getpid()))
         en_ls = self.tokenize_en(en_sents)
         ja_ls = self.tokenize_ja(ja_sents)
         queue.put([en.replace('\t', '') + '\t' + ja.replace('\t', '')
                    for en, ja in zip(en_ls, ja_ls)])
-        print("Tokenization [Process ID: {}] has finished.".format(os.getpid()))
+        print("Tokenization [Process ID: {}] has finished.".format(
+            os.getpid()))
 
     def tokenize(self, en_sents: List[str], ja_sents: List[str]):
+        """
+        引数で与えられた英文と和文のリストをトークン化する関数
+        処理の高速化のためにマルチプロセス処理を実装してある
+        """
         queue = mp.Queue()
         num_sents = min(len(en_sents), len(ja_sents))
         size = int(num_sents / self.num_procs.value)
@@ -48,7 +55,8 @@ class Tokenization():
             tail = 0
             for i in range(self.num_procs.value):
                 head = size * i
-                tail = size * (i+1) if i != (self.num_procs.value-1) else num_sents
+                tail = size * \
+                    (i+1) if i != (self.num_procs.value-1) else num_sents
                 proc = mp.Process(target=self.tokenize_en_ja, args=[queue,
                                                                     en_sents[head: tail], ja_sents[head: tail]])
                 proc.start()
@@ -70,7 +78,7 @@ class Tokenization():
 
         return en_ls, ja_ls
 
-
+# テスト用コード
 if __name__ == "__main__":
     en_ls = ["I have to sleep.",
              "Michael is twenty years old today.",
