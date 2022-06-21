@@ -44,6 +44,14 @@ if __name__ == "__main__":
                         help="the number of processes to accelerate tokenization\n Default: 8   Valid range: 1 <= num_procs_tkn <= 16")
     parser.add_argument("--num_procs_freq", type=int, default=4,
                         help="the number of processes to accelerate creating frequency dictionaries\n Default: 4   Valid range: 1 <= num_procs_tkn <= 8")
+    parser.add_argument("--div_size", type=int, default=1000000,
+                        help="the number of sentences contained in each divided file if division of a dataset is enabled")
+    parser.add_argument("--div_train", action="store_true",
+                        help="divide a train dataset into several pieces when this optional parameter is given.")
+    parser.add_argument("--div_valid", action="store_true",
+                        help="divide a valid dataset into several pieces when this optional parameter is given.")
+    parser.add_argument("--div_test", action="store_true",
+                        help="divide a test dataset into several pieces when this optional parameter is given.")
 
     args = parser.parse_args()
     repo_path = args.repo_path
@@ -112,4 +120,5 @@ if __name__ == "__main__":
             en_ls, ja_ls, args.freq_thld, args.multiproc, args.num_procs_freq)
 
     split_ratio = {"train": 0.90, "valid": 0.05, "test": 0.05}
-    spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path)
+    spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path,
+                      div_size=args.div_size, div_train=args.div_train, div_valid=args.div_valid, div_test=args.div_test)
