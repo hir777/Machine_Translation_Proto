@@ -149,9 +149,6 @@ def clean(en_sents, ja_sents, workers=1):
             cleaned_en.append(en_sent)
             cleaned_ja.append(ja_sent)
 
-    print(cleaned_en)
-    print(cleaned_ja)
-
     print("\nChecking if downloaded sentences are truly English or Japanese sentences...")
 
     en_ls, ja_ls = [], []
