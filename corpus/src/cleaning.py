@@ -105,8 +105,8 @@ def rm_noise(en_sents, ja_sents, en_q, ja_q):
         ja_sent = hiragana_rare.sub('', ja_sent)
         ja_sent = katakana_rare.sub('', ja_sent)
 
-        en_sent = multi_space.sub('', en_sent)
-        ja_sent = multi_space.sub('', ja_sent)
+        en_sent = multi_space.sub(' ', en_sent)
+        ja_sent = multi_space.sub(' ', ja_sent)
 
         en_sent = encoding_err.sub('', en_sent)
         ja_sent = encoding_err.sub('', ja_sent)
@@ -189,7 +189,7 @@ if __name__ == "__main__":
 
     # clean関数全体のテストコード
 
-    en_ls, ja_ls = clean(en_sents=en_sents, ja_sents=ja_sents, workers=2)
+    en_ls, ja_ls = clean(en_sents=en_sents, ja_sents=ja_sents, workers=4)
     print(en_ls)
     print(ja_ls)
 
