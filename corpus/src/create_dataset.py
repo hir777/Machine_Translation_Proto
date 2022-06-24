@@ -1,3 +1,4 @@
+from audioop import mul
 import dl_tatoeba as tatoeba
 import filter as fl
 import split_dataset as spl
@@ -6,12 +7,22 @@ import dl_WikiMatrix as wiki
 import tokenize_enja as tkn
 import sys
 import time
-from cleaning import cleaning
+from cleaning import clean
+import gc
 
 
 def print_sents(sents):
     for idx, sent in enumerate(sents):
         print("{}:   {}".format(idx, sent))
+
+
+def check_workers(workers, name, min, max):
+    if workers < min or workers > max:
+        print("The value workers_{} {} is invalid. ".format(name, workers))
+        print("It is replaced by %d." % min)
+        return min
+    else:
+        return workers
 
 
 if __name__ == "__main__":
@@ -38,12 +49,12 @@ if __name__ == "__main__":
                         help="turn on/off the freq filter")
     parser.add_argument("--freq_thld", type=int, default=2,
                         help="threshold for filtering words by frequency")
-    parser.add_argument("--multiproc", action="store_true",
-                        help="turn on/off multi-processing to accelerate tokenization and filtering by frequency")
-    parser.add_argument("--num_procs_tkn", type=int, default=8,
-                        help="the number of processes to accelerate tokenization\n Default: 8   Valid range: 1 <= num_procs_tkn <= 16")
-    parser.add_argument("--num_procs_freq", type=int, default=4,
-                        help="the number of processes to accelerate creating frequency dictionaries\n Default: 4   Valid range: 1 <= num_procs_tkn <= 8")
+    parser.add_argument("--workers_tkn", type=int, default=1,
+                        help="the number of processes to accelerate tokenization\nDefault: 1   Valid range: 1 <= workers_tkn <= 12")
+    parser.add_argument("--workers_freq", type=int, default=1,
+                        help="the number of processes to accelerate creating frequency dictionaries\nDefault: 1   Valid range: 1 <= workers_freq <= 8")
+    parser.add_argument("--workers_clean", type=int, default=1,
+                        help="the number of processes to accelerate cleaning downloaded datasets\nDefault: 1   Valid range: 1 <= workers_clean <= 8")
     parser.add_argument("--div_size", type=int, default=1000000,
                         help="the number of sentences contained in each divided file if division of a dataset is enabled")
     parser.add_argument("--div_train", action="store_true",
@@ -68,30 +79,56 @@ if __name__ == "__main__":
     # WikiMatrixデータセットをダウンロードしてリスト化する
     if args.WikiMatrix:
         wiki_en, wiki_ja = wiki.dl_WikiMatrix(repo_path)
-        en_tmp_ls.append(wiki_en)
-        ja_tmp_ls.append(wiki_ja)
+
+        # 後で各データセットを結合する時のために小分けにしてリストに保存しておく。
+        # それによって、結合時のメモリの使用率を下げることができる。
+        total = min(len(wiki_en), len(wiki_ja))
+        _size = 10000
+        num_split = 390
+        for idx in range(num_split):
+            head = idx * _size
+            tail = (idx+1) * _size if idx != (num_split-1) else total
+            en_tmp_ls.append(wiki_en[head:tail])
+            ja_tmp_ls.append(wiki_ja[head:tail])
 
     if len(en_tmp_ls) == 0 or len(ja_tmp_ls) == 0:
         print("You need to specify at least one dataset to create a new dataset.")
         sys.exit()
     else:
-        en_ls = [en_sent for en_sents in en_tmp_ls for en_sent in en_sents]
-        ja_ls = [ja_sent for ja_sents in ja_tmp_ls for ja_sent in ja_sents]
+        # 各データセットを一つのリストにまとめて保存する
+        en_tmp_gen = (en_sents for en_sents in en_tmp_ls)
+        ja_tmp_gen = (ja_sents for ja_sents in ja_tmp_ls)
+        en_ls = [en_sent for en_sents in en_tmp_gen for en_sent in en_sents]
+        ja_ls = [ja_sent for ja_sents in ja_tmp_gen for ja_sent in ja_sents]
+
+        del en_tmp_ls[:]
+        del ja_tmp_ls[:]
+        gc.collect()
 
     if args.cleaning:
-        en_ls, ja_ls = cleaning(en_ls, ja_ls)
+        workers_clean = args.workers_clean
+        min_workers_clean = 1
+        max_workers_clean = 8
+        workers_clean = check_workers(
+            workers_clean, "clean", min_workers_clean, max_workers_clean)
+
+        start = time.time()
+        en_ls, ja_ls = clean(en_ls, ja_ls, workers_clean)
+        end = time.time()
+        print("%d seconds for cleaning datasets" % int(end - start))
+
+    print("\n{} sentences".format(min(len(en_ls), len(ja_ls))))
 
     # 英文と日本文をそれぞれトークン化する
-    num_procs_tkn = args.num_procs_tkn
-    if num_procs_tkn < 1 or num_procs_tkn > 16:
-        print("The value num_procs_tkn %d is invalid. " % num_procs_tkn)
-        print("It is replaced by %d." % 8)
-        num_procs_tkn = 8
+    workers_tkn = args.workers_tkn
+    min_workers_tkn = 1
+    max_workers_tkn = 12
+    workers_tkn = check_workers(
+        workers_tkn, "tkn", min_workers_tkn, max_workers_tkn)
 
     print("\nTokenizing sentences...")
     start = time.time()
-    tkn = tkn.Tokenization(multiproc=args.multiproc,
-                           num_procs=num_procs_tkn)
+    tkn = tkn.Tokenization(workers=workers_tkn)
     en_ls, ja_ls = tkn.tokenize(en_ls, ja_ls)
     end = time.time()
     print("%d seconds for tokenizing sentences" % int(end - start))
@@ -111,13 +148,22 @@ if __name__ == "__main__":
             print("Specified max_len %d is replaced by %d" % (max, 32))
             max = 32
         en_ls, ja_ls = fl.len_filter(en_ls, ja_ls, min, max, truncate=True)
+
     if args.overlap_filter:
         en_ls, ja_ls = fl.overlap_filter(en_ls, ja_ls)
+
     if args.ratio_filter:
         en_ls, ja_ls = fl.ratio_filter(en_ls, ja_ls)
+
     if args.freq_filter:
+        workers_freq = args.workers_freq
+        min_workers_freq = 1
+        max_workers_freq = 8
+        workers_freq = check_workers(
+            workers_freq, "freq", min_workers_freq, max_workers_freq)
+
         en_ls, ja_ls = fl.freq_filter(
-            en_ls, ja_ls, args.freq_thld, args.multiproc, args.num_procs_freq)
+            en_ls, ja_ls, args.freq_thld, workers=workers_freq)
 
     split_ratio = {"train": 0.90, "valid": 0.05, "test": 0.05}
     spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path,
