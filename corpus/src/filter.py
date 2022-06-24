@@ -148,17 +148,15 @@ def sort_freq_dict(freq_dict, descending=True):
     return freq_dict
 
 
-def concat_freq_dicts(en_queue, ja_queue, multiproc=False, num_procs=4):
-    if not multiproc:
-        num_procs = 1
+def concat_freq_dicts(en_queue, ja_queue, workers=1):
     en_freq_ls, ja_freq_ls = [], []
-    for _ in range(num_procs):
+    for _ in range(workers):
         en_freq_ls.append(en_queue.get())
         ja_freq_ls.append(ja_queue.get())
 
     en_freq_dict, ja_freq_dict = {}, {}
     print("\nConcatenating frequecy dictionaries...")
-    if multiproc:
+    if workers != 1:
         print("English:")
         for freq_dict in tqdm(en_freq_ls):
             for key, val in freq_dict.items():
@@ -202,36 +200,34 @@ def save_freq_distr(freq_dict, path, lang, descending=True, top_n=10):
     plt.savefig(os.path.join(path, "{}_fd.png".format(lang)))
 
 
-def freq_filter(en_sents, ja_sents, freq_thld, multiproc=False, num_procs=4, return_freq_dict=False):
+def freq_filter(en_sents, ja_sents, freq_thld, workers=1, return_freq_dict=False):
     """
     指定されたしきい値よりも低い出現頻度を持つ単語を<unk>トークンで置き換える関数
     """
     en_queue = mp.Queue()
     ja_queue = mp.Queue()
     num_sents = min(len(en_sents), len(ja_sents))
-    num_procs = num_procs if multiproc and num_procs > 1 else 1
-    num_procs = num_procs if num_procs <= num_sents else 2
-    size = int(num_sents / num_procs)
+    min_workers = 1
+    max_workers = 8
+    workers = workers if min_workers <= workers and workers <= max_workers else 1
+    workers = workers if workers <= num_sents else 1
+    size = int(num_sents / workers)
     en_ls, ja_ls = [], []
 
     start = time.time()
-    if multiproc:
-        tgt_fun = get_freq_dict
-        for i in range(num_procs):
-            head = i * size
-            tail = (i+1) * size if i != (num_procs-1) else num_sents
-            proc = mp.Process(target=tgt_fun, args=[
-                              en_sents[head:tail], ja_sents[head:tail], en_queue, ja_queue])
-            proc.start()
+    tgt_fun = get_freq_dict
+    for idx in range(workers):
+        head = idx * size
+        tail = (idx+1) * size if idx != (workers-1) else num_sents
+        proc = mp.Process(target=tgt_fun, args=[
+            en_sents[head:tail], ja_sents[head:tail], en_queue, ja_queue])
+        proc.start()
 
-    else:
-        get_freq_dict(en_sents[:num_sents],
-                      ja_sents[:num_sents], en_queue, ja_queue)
     end = time.time()
 
-    print("{} seconds for creating a frequency dict".format(end-start))
     en_freq, ja_freq = concat_freq_dicts(
-        en_queue, ja_queue, multiproc, num_procs)
+        en_queue, ja_queue, workers)
+    print("{} seconds for creating a frequency dict".format(end-start))
     print("\nFiltering by frequency...")
     en_ls = [replace_by_unk(en_sent, en_freq, freq_thld)
              for en_sent in tqdm(en_sents)]
@@ -251,15 +247,16 @@ if __name__ == "__main__":
              "I am a dog lover .", "I am a bilingual ."]
     ja_ls = ["私 は ペン を 持って いる 。", "私 は 鉛筆 を 持って いる 。",
              "私 は 愛犬家 です 。", "私 は バイリンガル です 。"]
+    en_ls, ja_ls = len_filter(en_ls, ja_ls, 6, 16)
     en_ls, ja_ls = overlap_filter(en_ls, ja_ls)
     en_ls, ja_ls = freq_filter(
-        en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=8)
+        en_ls, ja_ls, freq_thld=2, workers=8)
     print(en_ls)
     print(ja_ls)
 
     # 単語の出現頻度に関するヒストグラムを表示する機能のテストコード
     # _, _, en_freq_dict, ja_freq_dict = freq_filter(
-    #    en_ls, ja_ls, freq_thld=2, multiproc=True, num_procs=8, return_freq_dict=True)
+    #    en_ls, ja_ls, freq_thld=2, multiproc=True, workers=8, return_freq_dict=True)
 #
     # save_freq_distr(freq_dict=en_freq_dict, lang="en",
     #                descending=False, top_n=5)
