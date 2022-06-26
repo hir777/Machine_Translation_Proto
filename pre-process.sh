@@ -18,6 +18,7 @@ TRAIN_JA="$REPO_PATH/corpus/data/train.ja"
 VALID_EN="$REPO_PATH/corpus/data/valid.en"
 VALID_JA="$REPO_PATH/corpus/data/valid.ja"
 TEST_EN="$REPO_PATH/corpus/data/test.en"
+TEST_JA="$REPO_PATH/corpus/data/test.ja"
 TRAIN_SP="$REPO_PATH/src/train_sp.py"
 ENCODE="$REPO_PATH/src/encode.py"
 
