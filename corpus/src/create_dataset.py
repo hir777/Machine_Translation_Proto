@@ -11,9 +11,10 @@ from cleaning import clean
 import gc
 
 
-def print_sents(sents):
-    for idx, sent in enumerate(sents):
-        print("{}:   {}".format(idx, sent))
+def print_bitexts(en_sents, ja_sents):
+    for idx, (en, ja) in enumerate(zip(en_sents, ja_sents)):
+        print("\nEN{}:   {}".format(idx+1, en))
+        print("JA{}:   {}".format(idx+1, ja))
 
 
 def check_workers(workers, name, min, max):
@@ -47,7 +48,7 @@ if __name__ == "__main__":
                         help="turn on/off the ratio filter")
     parser.add_argument("--freq_filter", action="store_true",
                         help="turn on/off the freq filter")
-    parser.add_argument("--freq_thld", type=int, default=2,
+    parser.add_argument("--freq_thld", type=int, default=3,
                         help="threshold for filtering words by frequency")
     parser.add_argument("--workers_tkn", type=int, default=1,
                         help="the number of processes to accelerate tokenization\nDefault: 1   Valid range: 1 <= workers_tkn <= 12")
@@ -55,7 +56,7 @@ if __name__ == "__main__":
                         help="the number of processes to accelerate creating frequency dictionaries\nDefault: 1   Valid range: 1 <= workers_freq <= 8")
     parser.add_argument("--workers_clean", type=int, default=1,
                         help="the number of processes to accelerate cleaning downloaded datasets\nDefault: 1   Valid range: 1 <= workers_clean <= 8")
-    parser.add_argument("--div_size", type=int, default=1000000,
+    parser.add_argument("--div_size", type=int, default=250000,
                         help="the number of sentences contained in each divided file if division of a dataset is enabled")
     parser.add_argument("--div_train", action="store_true",
                         help="divide a train dataset into several pieces when this optional parameter is given.")
@@ -140,8 +141,8 @@ if __name__ == "__main__":
         if min < 1 or min > 16:
             print(
                 "The minimum length of sentences should be in a range: 1 <= min_len <= 16")
-            print("Specified min_len %d is replaced by %d" % (min, 6))
-            min = 4
+            print("Specified min_len %d is replaced by %d" % (min, 5))
+            min = 5
         if max < 16 or max > 256:
             print(
                 "The maximum length of sentences should be in a range: 16 <= min_len <= 256")
@@ -165,6 +166,6 @@ if __name__ == "__main__":
         en_ls, ja_ls = fl.freq_filter(
             en_ls, ja_ls, args.freq_thld, workers=workers_freq)
 
-    split_ratio = {"train": 0.90, "valid": 0.05, "test": 0.05}
+    split_ratio = {"train": 0.98, "valid": 0.01, "test": 0.01}
     spl.split_dataset(en_ls, ja_ls, split_ratio, repo_path,
                       div_size=args.div_size, div_train=args.div_train, div_valid=args.div_valid, div_test=args.div_test)
