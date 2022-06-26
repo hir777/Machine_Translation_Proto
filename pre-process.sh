@@ -43,4 +43,5 @@ fairseq-preprocess -s en -t ja \
     --trainpref train \
     --validpref valid \
     --destdir data-bin \
-    --joined-dictionary
+    --joined-dictionary \
+    --workers 4
