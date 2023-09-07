@@ -5,9 +5,9 @@
 bash pre-process.sh
 ```
 
-## トークン使用率 58  ## 残り会話数(概算) 7
 
-## トークン使用率 {int(remaining_tokens/max_tokens * 100)}％    ## 残り会話数(概算) {remaining_talks}
+
+## トークン使用率 58％    ## 残り会話数(概算) 7
 
 ## モデルにデータセットを学習させる
 
